@@ -1,6 +1,8 @@
 from src.defect_generator import DefectGenerator
 from src.cloth_generator import ClothGenerator
-from src.composer import PoissonComposer
+from src.blender import PoissonBlender
+
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -12,17 +14,25 @@ def show(img):
 def main():
     cloth_gen    = ClothGenerator()
     def_gen      = DefectGenerator(debug=False)
-    composer     = PoissonComposer()
+    blender      = PoissonBlender()
 
     patch_shape  = (128, 128)
     cloth        = cloth_gen.generate(shape=patch_shape)
     defect, mask = def_gen.generate(shape=patch_shape)
-    result       = composer.compose(cloth, defect, mask)
+    result       = blender.blend(cloth, defect, mask)
 
-    fig, axes = plt.subplots(nrows=3, ncols=2)
+    fig, axes = plt.subplots(nrows=2, ncols=2)
     axes[0][0].imshow(cloth)
-    axes[1][0].imshow(defect)
-    axes[2][0].imshow(mask)
+    axes[0][0].set_title('cloth')
+
+    axes[0][1].imshow(defect)
+    axes[0][1].set_title('defect')
+
+    axes[1][0].imshow(result)
+    axes[1][0].set_title('result')
+
+    axes[1][1].imshow(mask, cmap='gray')
+    axes[1][1].set_title('mask')
     fig.show()
 
 

@@ -87,8 +87,13 @@ def locate_patch(patch, rel_x, rel_y, shape):
     return result
 
 
+def hard_threshold(img):
+    img[img >= 128] = 255
+    return img
+
+
 class DefectGenerator:
-    DEFECT_MAX_PORTION = 1 / 5
+    DEFECT_MAX_PORTION = 1 / 8
     DEFECT_MIN_PORTION = 1 / 10
     DEFECT_TYPES = ['line', 'dot', 'ink', 'curve']
 
@@ -115,10 +120,11 @@ class DefectGenerator:
             defect_type = np.random.choice(self.DEFECT_TYPES)
 
         defect, mask = self._load_random_defect(defect_type)
+        # mask = hard_threshold(mask)
         if defect_type == 'dot':
             if np.random.binomial(1, 0.8):
                 defect = self._random_ellipse()
-                mask = 255 - defect
+                mask = 255 - defect  # invert
 
         if self.debug:
             self.axes[0][0].imshow(defect)
@@ -133,10 +139,22 @@ class DefectGenerator:
         defect, mask = self._random_scale(defect, mask, shape)
         defect, mask = self._random_position(defect, mask, shape)
 
+        # mask = hard_threshold(mask)
+
         if self.debug:
             self.axes[2][0].imshow(defect)
             self.axes[2][1].imshow(mask)
             plt.show()
+
+        # binarize
+        mask_bool = mask.sum(axis=-1) >= 125 * 3
+        mask[mask_bool] = 255
+        mask[~mask_bool] = 0
+        if len(mask.shape) == 3:
+            mask = mask.any(axis=-1) * 255
+
+        print(mask.shape)
+        print(np.unique(mask))
 
         return defect, mask
 
