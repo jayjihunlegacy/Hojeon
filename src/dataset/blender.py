@@ -2,6 +2,8 @@ import numpy as np
 from PIL import Image
 from scipy import sparse
 from scipy.sparse import linalg
+from .cloth_generator import ClothGenerator
+from .defect_generator import DefectGenerator
 
 
 class SeamlessEditingTool:
@@ -29,6 +31,9 @@ class SeamlessEditingTool:
             ])
             self.Coord2indx[i][j] = N
             N += 1
+
+        if N == 0:
+            raise ValueError('no mask found')
 
         self.b = np.zeros([N, 3])
         self.A = np.zeros([N, N])
@@ -68,7 +73,6 @@ class SeamlessEditingTool:
                     flag[3] * self.target[x, y + 1, j]
 
     def possion_solver(self):
-
         self.create_possion_equation()
 
         # Use Conjugate Gradient iteration to solve A x = b
@@ -93,3 +97,33 @@ class PoissonBlender:
         t = SeamlessEditingTool(defect, cloth.copy(), mask)
         return t.possion_solver()
 
+
+class DataGenerator:
+    def __init__(self):
+        self.cloth_gen = ClothGenerator()
+        self.defec_gen = DefectGenerator(debug=False)
+        self.blender = PoissonBlender()
+
+    def generate_failesafe(self, *args, **kwargs):
+        while True:
+            try:
+                return self.generate(*args, **kwargs)
+            except ValueError:
+                pass
+
+    def generate(self, patch_shape=(128, 128), defected=True):
+        cloth = self.cloth_gen.generate(shape=patch_shape)
+
+        if not defected:
+            return cloth
+
+        else:
+            defect, mask = self.defec_gen.generate(shape=patch_shape)
+            return self.blender.blend(cloth, defect, mask)
+
+    def generates(self, n=1, patch_shape=(128, 128), defected=True):
+        results = list()
+        for i in range(n):
+            results.append(self.generate_failesafe(patch_shape, defected=defected))
+
+        return np.stack(results)

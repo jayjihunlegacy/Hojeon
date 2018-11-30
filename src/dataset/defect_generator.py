@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import cv2
+from scipy.misc import imread
 import matplotlib.pyplot as plt
 
 
@@ -106,9 +107,6 @@ class DefectGenerator:
         else:
             self.fig, self.axes = None, None
 
-    def generate_like(self, image, defect_type):
-        return self.generate(image.shape, defect_type)
-
     def generate(self, shape, defect_type=None):
         """
 
@@ -153,9 +151,6 @@ class DefectGenerator:
         if len(mask.shape) == 3:
             mask = mask.any(axis=-1) * 255
 
-        print(mask.shape)
-        print(np.unique(mask))
-
         return defect, mask
 
     def _load_random_defect(self, defect_type):
@@ -173,8 +168,8 @@ class DefectGenerator:
         if self.debug:
             self.fig.suptitle(defect_name)
 
-        image = cv2.imread(os.path.join(folder, '%s.png' % defect_name))
-        mask = cv2.imread(os.path.join(folder, '%s.png' % mask_name))
+        image = imread(os.path.join(folder, '%s.png' % defect_name))
+        mask = imread(os.path.join(folder, '%s.png' % mask_name))
 
         if image is None:
             raise ValueError('Image not loaded')
@@ -188,7 +183,11 @@ class DefectGenerator:
         image_shape = np.array(image.shape[:2])
         min_scale = (shape * DefectGenerator.DEFECT_MIN_PORTION / image_shape).max()
         max_scale = (shape * DefectGenerator.DEFECT_MAX_PORTION / image_shape).min()
-        scale = np.random.uniform(min_scale, max_scale)
+
+        if min_scale < max_scale:
+            scale = np.random.uniform(min_scale, max_scale)
+        else:
+            scale = max_scale
 
         if self.debug:
             print('scale: %.3f' % scale)
@@ -197,7 +196,7 @@ class DefectGenerator:
 
     def _random_position(self, image, mask, shape):
         shape = np.array(shape)
-        assert (image.shape[:2] <= shape[:2] * DefectGenerator.DEFECT_MAX_PORTION).all(), 'defect image too big'
+        assert (image.shape[:2] <= shape[:2] * DefectGenerator.DEFECT_MAX_PORTION).all(), 'defect image too big. shape: %s, image shape: %s' % (shape, image.shape)
         rel_x_max, rel_y_max = shape[:2] - image.shape[:2]
         rel_x = np.random.randint(rel_x_max)
         rel_y = np.random.randint(rel_y_max)
