@@ -111,19 +111,40 @@ class DataGenerator:
             except ValueError:
                 pass
 
-    def generate(self, patch_shape=(128, 128), defected=True):
-        cloth = self.cloth_gen.generate(shape=patch_shape)
+    def generate(self, patch_shape=(128, 128), defected=None, cloth_type=None, defect_type=None):
+        if defected is None:
+            defected = np.random.randint(2)
+        if cloth_type is None:
+            cloth_type = np.random.randint(4)
+        if defect_type is None:
+            defect_type = np.random.randint(4)
+
+        cloth = self.cloth_gen.generate(shape=patch_shape, cloth_type=cloth_type)
 
         if not defected:
-            return cloth
+            return cloth, cloth_type, -1, defected
 
         else:
-            defect, mask = self.defec_gen.generate(shape=patch_shape)
-            return self.blender.blend(cloth, defect, mask)
+            defect, mask = self.defec_gen.generate(shape=patch_shape, defect_type=defect_type)
+            return self.blender.blend(cloth, defect, mask), cloth_type, defect_type, defected
 
-    def generates(self, n=1, patch_shape=(128, 128), defected=True):
-        results = list()
+    def generates(self, n=1, cloth_type=None, defect_type=None, patch_shape=(128, 128), defected=None):
+        images = list()
+        cloth_types = list()
+        defect_types = list()
+        defecteds = list()
         for i in range(n):
-            results.append(self.generate_failesafe(patch_shape, defected=defected))
+            image0, cloth_type0, defect_type0, defected0 = self.generate_failesafe(patch_shape,
+                                                                     defected=defected,
+                                                                     cloth_type=cloth_type,
+                                                                     defect_type=defect_type)
+            images.append(image0)
+            cloth_types.append(cloth_type0)
+            defect_types.append(defect_type0)
+            defecteds.append(defected0)
 
-        return np.stack(results)
+        if len(images) != 0:
+            return np.stack(images), np.stack(cloth_types), np.stack(defect_types), np.stack(defecteds)
+
+        else:
+            return np.zeros((0,) + patch_shape + (3,), dtype=np.float32), np.zeros((0,)), np.zeros((0,)), np.zeros((0,))

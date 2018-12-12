@@ -107,19 +107,17 @@ class DefectGenerator:
         else:
             self.fig, self.axes = None, None
 
-    def generate(self, shape, defect_type=None):
+    def generate(self, shape, defect_type):
         """
 
         :param shape:
-        :param defect_type: ['line', 'dot', 'ink', 'curve']
+        :param defect_type:
         :return: defect, mask
         """
-        if defect_type is None:
-            defect_type = np.random.choice(self.DEFECT_TYPES)
-
+        # ['line', 'dot', 'ink', 'curve']
         defect, mask = self._load_random_defect(defect_type)
         # mask = hard_threshold(mask)
-        if defect_type == 'dot':
+        if defect_type == 1:
             if np.random.binomial(1, 0.8):
                 defect = self._random_ellipse()
                 mask = 255 - defect  # invert
@@ -154,7 +152,8 @@ class DefectGenerator:
         return defect, mask
 
     def _load_random_defect(self, defect_type):
-        folder = os.path.join(self.defect_folder, defect_type)
+        folder_name = ['line', 'dot', 'ink', 'curve'][defect_type]
+        folder = os.path.join(self.defect_folder, folder_name)
         filenames = os.listdir(folder)
         inds = [filename.split('.')[0].split('_')[1] for filename in filenames if filename.startswith('defect')]
         if len(inds) == 0:
